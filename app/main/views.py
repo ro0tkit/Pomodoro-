@@ -17,6 +17,7 @@ def register():
         return redirect(url_for('auth.login'))
     title = "Pomodoro"
     return render_template('auth/register.html',registration_form = form, title = title)
+
 @auth.route('/login',methods=['GET','POST'])
 def login():
     login_form = LoginForm()
@@ -30,3 +31,9 @@ def login():
 
     title = "Pomodoro login"
     return render_template('auth/login.html',login_form = login_form,title=title)
+
+@auth.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for("main.index"))
