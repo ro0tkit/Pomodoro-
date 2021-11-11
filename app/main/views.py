@@ -1,24 +1,39 @@
-from flask import render_template,redirect,url_for
-from flask_login import login_required,current_user
-from . import main
-from .forms import UpdateProfile,TaskForm
-from ..models import User,Task
+from flask import render_template,redirect,url_for,flash,request
+from . import auth
+from ..models import User
+from .forms import RegistrationForm,LoginForm
+from .. import db
+from flask_login import login_user,logout_user,login_required
 
-@main.route('/')
-def index():
-    
-    return render_template('index.html', task = Task)
 
-@main.route('/create_new', methods = ['POST','GET'])
-@login_required
-def new_task():
-    form = TaskForm()
+@auth.route('/register',methods = ["GET","POST"])
+def register():
+    form = RegistrationForm()
     if form.validate_on_submit():
-        title = form.title.data
-        post = form.post.data
-        user_id = current_user
-        new_task_object = Task(post=post,user_id=user_id,title=title)
-        new_task_object.save_p()
-        return redirect(url_for('main.index'))
-        
-    return render_template('create_task.html', form = form)		
+        user = User(email = form.email.data, username = form.username.data,password = form.password.data)
+        db.session.add(user)
+        db.session.commit()
+
+        return redirect(url_for('auth.login'))
+    title = "Pomodoro"
+    return render_template('auth/register.html',registration_form = form, title = title)
+
+@auth.route('/login',methods=['GET','POST'])
+def login():
+    login_form = LoginForm()
+    if login_form.validate_on_submit():
+        user = User.query.filter_by(email = login_form.email.data).first()
+        if user is not None and user.verify_password(login_form.password.data):
+            login_user(user,login_form.remember.data)
+            return redirect(request.args.get('next') or url_for('main.index'))
+
+        flash('Invalid username or Password')
+
+    title = "Pomodoro login"
+    return render_template('auth/login.html',login_form = login_form,title=title)
+
+@auth.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for("main.index"))
